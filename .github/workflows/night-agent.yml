@@ -30,6 +30,7 @@ jobs:
             4. Lance pnpm typecheck et pnpm test ; corrige jusqu'a ce que tout passe.
             5. Cree une branche dediee, commit, et ouvre une Pull request avec un resume clair : tache traitee, decisions prises, confirmation que les tests passent.
             6. Ne fusionne jamais toi-meme, et ne traite qu'une seule tache par Pull request.
+          show_full_output: true
           claude_args: |
             --allowedTools "Read,Edit,Write,Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(npm:*),Bash(pnpm:*),Bash(npx:*),Bash(corepack:*),Bash(node:*)"
             --model opus
