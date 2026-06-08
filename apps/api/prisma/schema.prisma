@@ -1,0 +1,47 @@
+// Schéma Prisma — Oreli (SPEC-001 · T1 · Données).
+//
+// Périmètre T1 : seuls `Vendor` et `Product` sont nécessaires au seed du
+// catalogue et à l'endpoint `GET /api/v1/products`. Les modèles `GiftSession`
+// (T4) et `Order` (T6) seront ajoutés par leurs tâches respectives pour éviter
+// de figer prématurément des décisions hors-scope (enums de mode/statut, JSON).
+//
+// Règle SYSTEM.md : pagination par curseur (`createdAt` + `id`), d'où l'index
+// composite sur `Product`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  city      String
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  vendorId     String
+  title        String
+  description  String
+  priceCents   Int
+  currency     String   @default("EUR")
+  imageUrl     String
+  tags         String[]
+  occasionTags String[]
+  inStock      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt, id])
+  @@index([vendorId])
+}

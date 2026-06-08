@@ -1,0 +1,281 @@
+{
+  "vendors": [
+    {
+      "slug": "maison-dandoy",
+      "name": "Maison Dandoy",
+      "city": "Bruxelles"
+    },
+    {
+      "slug": "pierre-marcolini",
+      "name": "Pierre Marcolini",
+      "city": "Bruxelles"
+    },
+    {
+      "slug": "brussels-beer-project",
+      "name": "Brussels Beer Project",
+      "city": "Bruxelles"
+    },
+    {
+      "slug": "cafe-capitale",
+      "name": "Café Capitale",
+      "city": "Bruxelles"
+    },
+    {
+      "slug": "mary-chocolatier",
+      "name": "Mary Chocolatier",
+      "city": "Bruxelles"
+    }
+  ],
+  "products": [
+    {
+      "id": "dandoy-speculoos",
+      "vendorSlug": "maison-dandoy",
+      "title": "Boîte de speculoos artisanaux",
+      "description": "Les speculoos emblématiques de la maison, cuits au beurre et à la cassonade selon la recette historique.",
+      "priceCents": 1200,
+      "tags": ["speculoos", "gourmand", "artisanal", "local"],
+      "occasionTags": ["noel", "remerciement"],
+      "inStock": true
+    },
+    {
+      "id": "dandoy-pain-grecque",
+      "vendorSlug": "maison-dandoy",
+      "title": "Pain à la grecque croustillant",
+      "description": "Biscuit bruxellois croustillant au sucre perlé, parfait pour accompagner le café.",
+      "priceCents": 900,
+      "tags": ["biscuit", "gourmand", "artisanal"],
+      "occasionTags": ["remerciement", "cremaillere"],
+      "inStock": true
+    },
+    {
+      "id": "dandoy-macarons",
+      "vendorSlug": "maison-dandoy",
+      "title": "Assortiment de macarons",
+      "description": "Douze macarons aux parfums de saison, coque lisse et ganache fondante.",
+      "priceCents": 1800,
+      "tags": ["sucre", "gourmand", "douceur"],
+      "occasionTags": ["anniversaire", "felicitations"],
+      "inStock": true
+    },
+    {
+      "id": "dandoy-tarte-sucre",
+      "vendorSlug": "maison-dandoy",
+      "title": "Tarte au sucre bruxelloise",
+      "description": "Tarte briochée nappée de cassonade caramélisée, une douceur réconfortante du terroir.",
+      "priceCents": 1500,
+      "tags": ["gourmand", "local", "sucre"],
+      "occasionTags": ["anniversaire", "fete-des-meres"],
+      "inStock": true
+    },
+    {
+      "id": "dandoy-coffret-noel",
+      "vendorSlug": "maison-dandoy",
+      "title": "Coffret biscuits de Noël",
+      "description": "Une sélection festive de biscuits d'épices et de speculoos dans un écrin cartonné.",
+      "priceCents": 2400,
+      "tags": ["biscuit", "gourmand", "premium"],
+      "occasionTags": ["noel"],
+      "inStock": true
+    },
+    {
+      "id": "marcolini-coffret-16",
+      "vendorSlug": "pierre-marcolini",
+      "title": "Coffret 16 chocolats signature",
+      "description": "Seize bouchées signature, pralinés et ganaches travaillés à partir de fèves grand cru.",
+      "priceCents": 2900,
+      "tags": ["chocolat", "premium", "gourmand"],
+      "occasionTags": ["saint-valentin", "anniversaire", "felicitations"],
+      "inStock": true
+    },
+    {
+      "id": "marcolini-tablette-70",
+      "vendorSlug": "pierre-marcolini",
+      "title": "Tablette grand cru 70%",
+      "description": "Tablette de chocolat noir mono-origine à la longueur en bouche remarquable.",
+      "priceCents": 850,
+      "tags": ["chocolat", "artisanal"],
+      "occasionTags": ["remerciement"],
+      "inStock": true
+    },
+    {
+      "id": "marcolini-coeur-praline",
+      "vendorSlug": "pierre-marcolini",
+      "title": "Cœur praliné Saint-Valentin",
+      "description": "Un cœur en chocolat garni de praliné noisette, présenté dans son écrin rouge.",
+      "priceCents": 3200,
+      "tags": ["chocolat", "premium", "douceur"],
+      "occasionTags": ["saint-valentin"],
+      "inStock": true
+    },
+    {
+      "id": "marcolini-oeufs-paques",
+      "vendorSlug": "pierre-marcolini",
+      "title": "Œufs de Pâques assortis",
+      "description": "Petits œufs pralinés et fritures de chocolat, dans un sachet élégant.",
+      "priceCents": 2600,
+      "tags": ["chocolat", "gourmand"],
+      "occasionTags": ["paques"],
+      "inStock": true
+    },
+    {
+      "id": "marcolini-calendrier-avent",
+      "vendorSlug": "pierre-marcolini",
+      "title": "Calendrier de l'avent chocolat",
+      "description": "Vingt-quatre cases, vingt-quatre chocolats pour patienter jusqu'à Noël.",
+      "priceCents": 4500,
+      "tags": ["chocolat", "premium"],
+      "occasionTags": ["noel"],
+      "inStock": true
+    },
+    {
+      "id": "bbp-coffret-decouverte",
+      "vendorSlug": "brussels-beer-project",
+      "title": "Coffret découverte 6 bières",
+      "description": "Six bières artisanales brassées à Bruxelles, des houblonnées aux plus rondes.",
+      "priceCents": 2200,
+      "tags": ["biere", "artisanal", "local"],
+      "occasionTags": ["anniversaire", "fete-des-peres"],
+      "inStock": true
+    },
+    {
+      "id": "bbp-delta-ipa",
+      "vendorSlug": "brussels-beer-project",
+      "title": "Bière Delta IPA (75 cl)",
+      "description": "L'IPA phare de la brasserie, fruitée et résineuse, en grand format à partager.",
+      "priceCents": 700,
+      "tags": ["biere", "artisanal"],
+      "occasionTags": ["remerciement"],
+      "inStock": true
+    },
+    {
+      "id": "bbp-coffret-verre",
+      "vendorSlug": "brussels-beer-project",
+      "title": "Coffret bière + verre sérigraphié",
+      "description": "Deux bières de garde accompagnées de leur verre sérigraphié aux couleurs de la brasserie.",
+      "priceCents": 3400,
+      "tags": ["biere", "premium", "local"],
+      "occasionTags": ["fete-des-peres", "felicitations"],
+      "inStock": true
+    },
+    {
+      "id": "bbp-babylone",
+      "vendorSlug": "brussels-beer-project",
+      "title": "Bière de saison Babylone",
+      "description": "Bière brassée à partir de pain invendu récupéré en ville, légère et désaltérante.",
+      "priceCents": 750,
+      "tags": ["biere", "local", "bio"],
+      "occasionTags": ["cremaillere"],
+      "inStock": true
+    },
+    {
+      "id": "bbp-coffret-collector",
+      "vendorSlug": "brussels-beer-project",
+      "title": "Coffret brasseur collector",
+      "description": "Une caisse bois numérotée réunissant les cuvées spéciales de l'année.",
+      "priceCents": 5200,
+      "tags": ["biere", "premium", "collector"],
+      "occasionTags": ["anniversaire"],
+      "inStock": true
+    },
+    {
+      "id": "capitale-ethiopie",
+      "vendorSlug": "cafe-capitale",
+      "title": "Café de spécialité Éthiopie (250 g)",
+      "description": "Grains lavés aux notes florales et d'agrumes, torréfiés à Bruxelles en petites séries.",
+      "priceCents": 1100,
+      "tags": ["cafe", "artisanal", "bio"],
+      "occasionTags": ["remerciement"],
+      "inStock": true
+    },
+    {
+      "id": "capitale-coffret-3-origines",
+      "vendorSlug": "cafe-capitale",
+      "title": "Coffret 3 origines",
+      "description": "Trois cafés de spécialité d'origines distinctes pour un tour du monde en tasse.",
+      "priceCents": 2400,
+      "tags": ["cafe", "premium", "gourmand"],
+      "occasionTags": ["anniversaire", "fete-des-peres"],
+      "inStock": true
+    },
+    {
+      "id": "capitale-piston-cafe",
+      "vendorSlug": "cafe-capitale",
+      "title": "Cafetière à piston + café",
+      "description": "Une cafetière à piston élégante accompagnée d'un paquet de café fraîchement torréfié.",
+      "priceCents": 3800,
+      "tags": ["cafe", "premium"],
+      "occasionTags": ["cremaillere", "felicitations"],
+      "inStock": true
+    },
+    {
+      "id": "capitale-decafeine",
+      "vendorSlug": "cafe-capitale",
+      "title": "Café décaféiné doux (250 g)",
+      "description": "Décaféiné à l'eau, rond et sans amertume, pour les amateurs de café du soir.",
+      "priceCents": 1000,
+      "tags": ["cafe", "douceur"],
+      "occasionTags": ["remerciement"],
+      "inStock": false
+    },
+    {
+      "id": "capitale-mug-duo",
+      "vendorSlug": "cafe-capitale",
+      "title": "Duo mug + café",
+      "description": "Un mug en grès artisanal et un café de spécialité, pour des matins plus doux.",
+      "priceCents": 1900,
+      "tags": ["cafe", "gourmand", "local"],
+      "occasionTags": ["naissance", "cremaillere"],
+      "inStock": true
+    },
+    {
+      "id": "mary-ballotin-royal",
+      "vendorSlug": "mary-chocolatier",
+      "title": "Ballotin pralines royales",
+      "description": "Un ballotin de pralines fraîches, fournisseur breveté de la Cour, finement enrubanné.",
+      "priceCents": 2700,
+      "tags": ["chocolat", "premium", "gourmand"],
+      "occasionTags": ["felicitations", "remerciement"],
+      "inStock": true
+    },
+    {
+      "id": "mary-truffes",
+      "vendorSlug": "mary-chocolatier",
+      "title": "Truffes maison (boîte)",
+      "description": "Truffes au cacao fondantes, roulées à la main, dans une boîte cadeau.",
+      "priceCents": 1600,
+      "tags": ["chocolat", "douceur", "gourmand"],
+      "occasionTags": ["saint-valentin", "anniversaire"],
+      "inStock": true
+    },
+    {
+      "id": "mary-sans-sucre",
+      "vendorSlug": "mary-chocolatier",
+      "title": "Chocolats sans sucre ajouté",
+      "description": "Une sélection de chocolats sans sucre ajouté, pour se faire plaisir en douceur.",
+      "priceCents": 1900,
+      "tags": ["chocolat", "bio"],
+      "occasionTags": ["remerciement"],
+      "inStock": false
+    },
+    {
+      "id": "mary-coffret-naissance",
+      "vendorSlug": "mary-chocolatier",
+      "title": "Coffret naissance dragées",
+      "description": "Dragées au chocolat et amande dans un coffret pastel pour célébrer une naissance.",
+      "priceCents": 2300,
+      "tags": ["chocolat", "douceur"],
+      "occasionTags": ["naissance"],
+      "inStock": true
+    },
+    {
+      "id": "mary-coffret-prestige",
+      "vendorSlug": "mary-chocolatier",
+      "title": "Grand coffret prestige",
+      "description": "Le coffret le plus généreux de la maison, assortiment complet de pralines et ganaches.",
+      "priceCents": 6500,
+      "tags": ["chocolat", "premium", "collector"],
+      "occasionTags": ["noel", "felicitations"],
+      "inStock": true
+    }
+  ]
+}
