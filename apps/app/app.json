@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Oreli",
+    "slug": "oreli",
+    "scheme": "oreli",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"]
+  }
+}
