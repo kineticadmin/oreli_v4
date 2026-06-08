@@ -1,0 +1,35 @@
+name: Oreli night agent
+
+on:
+  schedule:
+    - cron: "0 1 * * *"   # 01:00 UTC, soit 2h-3h a Bruxelles
+  workflow_dispatch:        # declenchement manuel
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Tu travailles sur le projet Oreli.
+            Etape 0 : avec `gh pr list`, verifie qu'aucune Pull request n'est deja ouverte pour la prochaine tache ; si oui, arrete-toi sans rien faire.
+            1. Lis .claude/SYSTEM.md et respecte toutes ses regles absolues.
+            2. Ouvre .claude/specs/SPEC-001-buyer-gift-flow.md et identifie la PREMIERE tache non terminee (T0, puis T1...) en regardant ce qui existe deja dans le depot.
+            3. Implemente UNIQUEMENT cette tache, en respectant son perimetre et sa section Hors-scope.
+            4. Lance pnpm typecheck et pnpm test ; corrige jusqu'a ce que tout passe.
+            5. Cree une branche dediee, commit, et ouvre une Pull request avec un resume clair : tache traitee, decisions prises, confirmation que les tests passent.
+            6. Ne fusionne jamais toi-meme, et ne traite qu'une seule tache par Pull request.
+          claude_args: |
+            --allowedTools "Read,Edit,Write,Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(npm:*),Bash(pnpm:*),Bash(npx:*),Bash(corepack:*),Bash(node:*)"
+            --model opus
