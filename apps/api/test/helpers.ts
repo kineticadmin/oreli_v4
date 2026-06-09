@@ -2,6 +2,10 @@ import type {
   ProductRecord,
   ProductRepository,
 } from "../src/products/service";
+import type {
+  CandidateFilter,
+  CandidateRepository,
+} from "../src/prefilter/service";
 
 /** Construit un enregistrement produit de test avec des valeurs par défaut. */
 export function makeRecord(
@@ -45,6 +49,32 @@ export function makeInMemoryRepository(
               return recordTime === afterTime && record.id < after.id;
             });
       return pool.slice(0, limit);
+    },
+  };
+}
+
+/**
+ * Dépôt de candidats en mémoire reproduisant la sémantique SQL du dépôt Prisma :
+ * borne de budget inclusive, `inStock = true`, au moins un `occasionTags`
+ * correspondant, tri `(createdAt desc, id desc)` puis troncature à `limit`.
+ * Permet de tester le pré-filtre sans base de données.
+ */
+export function makeInMemoryCandidateRepository(
+  records: ProductRecord[],
+): CandidateRepository {
+  const sorted = [...records].sort(compareDesc);
+
+  return {
+    async findCandidates(filter: CandidateFilter, limit: number) {
+      return sorted
+        .filter(
+          (record) =>
+            record.inStock &&
+            record.priceCents >= filter.budget.minCents &&
+            record.priceCents <= filter.budget.maxCents &&
+            record.occasionTags.includes(filter.occasion),
+        )
+        .slice(0, limit);
     },
   };
 }
