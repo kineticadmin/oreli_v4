@@ -43,7 +43,12 @@ export interface ProductRepository {
   findPage(request: ProductPageRequest): Promise<ProductRecord[]>;
 }
 
-function toProduct(record: ProductRecord): Product {
+/**
+ * Projette un enregistrement interne vers la forme publique `Product`
+ * (`createdAt` sérialisé en chaîne ISO 8601). Exporté pour être réutilisé par
+ * d'autres services qui exposent des produits (ex. le pré-filtre, T3).
+ */
+export function toProduct(record: ProductRecord): Product {
   return {
     id: record.id,
     vendorId: record.vendorId,
