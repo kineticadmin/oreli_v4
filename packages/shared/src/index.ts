@@ -91,3 +91,116 @@ export const productsPageSchema = z.object({
 });
 
 export type ProductsPage = z.infer<typeof productsPageSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Dialogue cadeau · Oreli (SPEC-001 · T4)                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Modes de proposition. Deux modes (SPEC-001) : `selection` (sélection
+ * accompagnée, 3 à 5 produits) et `surprise` (un unique produit, sans révéler
+ * de liste). Les variantes « totale / encadrée » de la surprise s'expriment par
+ * le profil destinataire et le budget, non par un mode distinct.
+ */
+export const giftModeSchema = z.enum(["selection", "surprise"]);
+
+export type GiftMode = z.infer<typeof giftModeSchema>;
+
+/** Tailles de short list (mode `selection`) garanties à l'utilisateur. */
+export const SHORTLIST_MIN = 3;
+export const SHORTLIST_MAX = 5;
+
+/**
+ * Attributs non identifiants de la personne destinataire transmis au modèle.
+ * `.strict()` rejette tout champ supplémentaire (nom, e-mail, adresse…), ce qui
+ * garantit côté schéma qu'aucune donnée identifiante n'atteint Gemini
+ * (SPEC-001 · contrainte de confidentialité).
+ */
+export const recipientProfileSchema = z
+  .object({
+    /** Type de relation (ex. « ami proche », « parent »). */
+    relationship: z.string().min(1).max(120).optional(),
+    /** Goûts et centres d'intérêt non identifiants. */
+    tastes: z.array(z.string().min(1).max(120)).max(20).default([]),
+    /** Ton souhaité pour le cadeau (ex. « tendre », « ludique »). */
+    tone: z.string().min(1).max(120).optional(),
+  })
+  .strict();
+
+export type RecipientProfile = z.infer<typeof recipientProfileSchema>;
+
+/** Rôle d'un tour de conversation : l'utilisateur ou Oreli. */
+export const conversationRoleSchema = z.enum(["user", "oreli"]);
+
+export type ConversationRole = z.infer<typeof conversationRoleSchema>;
+
+/** Un tour de conversation entre l'utilisateur et Oreli. */
+export const conversationMessageSchema = z
+  .object({
+    role: conversationRoleSchema,
+    content: z.string().min(1).max(2000),
+  })
+  .strict();
+
+export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
+
+/**
+ * État de session transmis en entrée de `POST /api/v1/gift/converse`. Le client
+ * détient l'état (la conversation est sans état côté serveur dans cette tranche)
+ * et le renvoie à chaque tour. `eventDate` est une chaîne ISO 8601.
+ */
+export const giftSessionStateSchema = z
+  .object({
+    guestToken: z.string().min(1),
+    budgetMinCents: z.number().int().nonnegative(),
+    budgetMaxCents: z.number().int().positive(),
+    occasion: z.string().min(1),
+    eventDate: z.string().datetime(),
+    mode: giftModeSchema,
+    recipient: recipientProfileSchema,
+    messages: z.array(conversationMessageSchema).min(1).max(50),
+  })
+  .strict()
+  .refine((state) => state.budgetMinCents <= state.budgetMaxCents, {
+    message: "budgetMinCents doit être inférieur ou égal à budgetMaxCents",
+    path: ["budgetMinCents"],
+  });
+
+export type GiftSessionState = z.infer<typeof giftSessionStateSchema>;
+
+/**
+ * Sortie brute attendue du modèle produit, parsée en JSON strict (SPEC-001) :
+ * `{ reply, readyToSuggest, mode, productIds? }`. `.strict()` rejette tout champ
+ * hors contrat.
+ */
+export const oreliReplySchema = z
+  .object({
+    reply: z.string().min(1),
+    readyToSuggest: z.boolean(),
+    mode: giftModeSchema,
+    productIds: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+export type OreliReply = z.infer<typeof oreliReplySchema>;
+
+/**
+ * Réponse de `POST /api/v1/gift/converse`. Quand `readyToSuggest` est vrai, soit
+ * `shortlist` (mode `selection`) soit `surprise` (mode `surprise`) est renseigné,
+ * jamais les deux ; l'autre vaut `null`.
+ */
+export const giftConverseResponseSchema = z.object({
+  reply: z.string(),
+  readyToSuggest: z.boolean(),
+  mode: giftModeSchema,
+  shortlist: z.array(productSchema).nullable(),
+  surprise: productSchema.nullable(),
+});
+
+export type GiftConverseResponse = z.infer<typeof giftConverseResponseSchema>;
+
+export {
+  buildOreliCatalogueBlock,
+  ORELI_PROMPT_VERSION,
+  ORELI_SYSTEM_PROMPT,
+} from "./prompts/oreli";

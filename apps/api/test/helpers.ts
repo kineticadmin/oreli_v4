@@ -6,6 +6,7 @@ import type {
   CandidateFilter,
   CandidateRepository,
 } from "../src/prefilter/service";
+import type { GiftModel } from "../src/gift/model";
 
 /** Construit un enregistrement produit de test avec des valeurs par défaut. */
 export function makeRecord(
@@ -75,6 +76,19 @@ export function makeInMemoryCandidateRepository(
             record.occasionTags.includes(filter.occasion),
         )
         .slice(0, limit);
+    },
+  };
+}
+
+/**
+ * Modèle produit déterministe pour les tests : renvoie toujours la valeur brute
+ * fournie, sans appel réseau. Permet d'exercer le service de dialogue (et la
+ * frontière de validation Zod) sans dépendre de Gemini.
+ */
+export function makeStubGiftModel(raw: unknown): GiftModel {
+  return {
+    async generate() {
+      return raw;
     },
   };
 }
