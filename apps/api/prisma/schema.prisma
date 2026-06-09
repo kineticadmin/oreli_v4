@@ -1,12 +1,14 @@
 // Schéma Prisma — Oreli (SPEC-001 · T1 · Données).
 //
 // Périmètre T1 : seuls `Vendor` et `Product` sont nécessaires au seed du
-// catalogue et à l'endpoint `GET /api/v1/products`. Les modèles `GiftSession`
-// (T4) et `Order` (T6) seront ajoutés par leurs tâches respectives pour éviter
-// de figer prématurément des décisions hors-scope (enums de mode/statut, JSON).
+// catalogue et à l'endpoint `GET /api/v1/products`. Le modèle `Order` est ajouté
+// par T6 (checkout). `GiftSession` n'est volontairement pas persistée dans cette
+// tranche : la conversation reste détenue côté client (T4), donc `Order` ne
+// référence pas une `GiftSession` par clé étrangère ; `giftSessionId` conserve
+// le jeton de session invité comme simple chaîne.
 //
 // Règle SYSTEM.md : pagination par curseur (`createdAt` + `id`), d'où l'index
-// composite sur `Product`.
+// composite sur `Product` (et sur `Order`, pour un futur listing de commandes).
 
 generator client {
   provider = "prisma-client-js"
@@ -44,4 +46,23 @@ model Product {
 
   @@index([createdAt, id])
   @@index([vendorId])
+}
+
+// Commande (SPEC-001 · T6 · Checkout). `recipient` (coordonnées de livraison) est
+// un JSON : ce sont des données potentiellement identifiantes, jamais envoyées au
+// modèle produit. `amountCents` fait autorité côté serveur (recopié du produit au
+// moment du paiement), et n'est jamais fourni par le client.
+model Order {
+  id                    String   @id @default(cuid())
+  giftSessionId         String
+  productId             String
+  amountCents           Int
+  currency              String   @default("EUR")
+  stripePaymentIntentId String
+  status                String
+  recipient             Json
+  deliveryDate          DateTime
+  createdAt             DateTime @default(now())
+
+  @@index([createdAt, id])
 }
