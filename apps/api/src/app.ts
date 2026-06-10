@@ -1,11 +1,28 @@
 import {
   API_PREFIX,
+  createOrderRequestSchema,
   giftSessionStateSchema,
   type HealthResponse,
   listProductsQuerySchema,
   makeApiError,
 } from "@oreli/shared";
 import { Hono } from "hono";
+import {
+  createPrismaOrderRepository,
+  createPrismaProductLookup,
+} from "./checkout/repository";
+import {
+  type CheckoutDeps,
+  createCheckout,
+  InvalidCheckoutError,
+  type OrderRepository,
+  type PaymentGateway,
+  PaymentGatewayError,
+  ProductNotFoundError,
+  ProductOutOfStockError,
+  type ProductLookup,
+} from "./checkout/service";
+import { createStripePaymentGateway } from "./checkout/stripe";
 import { getPrismaClient } from "./db";
 import { createGeminiGiftModel } from "./gift/gemini";
 import type { GiftModel } from "./gift/model";
@@ -33,6 +50,9 @@ export interface AppDependencies {
   productRepository?: ProductRepository;
   candidateRepository?: CandidateRepository;
   giftModel?: GiftModel;
+  productLookup?: ProductLookup;
+  orderRepository?: OrderRepository;
+  paymentGateway?: PaymentGateway;
 }
 
 /**
@@ -85,6 +105,47 @@ export function createApp(deps: AppDependencies = {}): Hono {
       geminiModel = createGeminiGiftModel(apiKey);
     }
     return geminiModel;
+  };
+
+  // Lecture produit et dépôt de commandes (T6), résolus paresseusement comme
+  // les autres dépôts Prisma : la base n'est touchée qu'au premier appel réel.
+  let prismaProductLookup: ProductLookup | null = null;
+  const getProductLookup = (): ProductLookup => {
+    if (deps.productLookup) {
+      return deps.productLookup;
+    }
+    if (prismaProductLookup === null) {
+      prismaProductLookup = createPrismaProductLookup(getPrismaClient());
+    }
+    return prismaProductLookup;
+  };
+
+  let prismaOrderRepository: OrderRepository | null = null;
+  const getOrderRepository = (): OrderRepository => {
+    if (deps.orderRepository) {
+      return deps.orderRepository;
+    }
+    if (prismaOrderRepository === null) {
+      prismaOrderRepository = createPrismaOrderRepository(getPrismaClient());
+    }
+    return prismaOrderRepository;
+  };
+
+  // Passerelle de paiement (Stripe, mode test) résolue paresseusement : la clé
+  // n'est lue qu'au premier appel réel, jamais pendant les tests.
+  let stripeGateway: PaymentGateway | null = null;
+  const getPaymentGateway = (): PaymentGateway => {
+    if (deps.paymentGateway) {
+      return deps.paymentGateway;
+    }
+    if (stripeGateway === null) {
+      const secretKey = process.env.STRIPE_SECRET_KEY;
+      if (secretKey === undefined || secretKey.length === 0) {
+        throw new Error("STRIPE_SECRET_KEY manquante");
+      }
+      stripeGateway = createStripePaymentGateway(secretKey);
+    }
+    return stripeGateway;
   };
 
   const v1 = new Hono();
@@ -168,6 +229,62 @@ export function createApp(deps: AppDependencies = {}): Hono {
         logger.error("gift_model_error", { error: err.message });
         return c.json(
           makeApiError("model_error", "Réponse du modèle indisponible"),
+          502,
+        );
+      }
+      throw err;
+    }
+  });
+
+  v1.post("/checkout", async (c) => {
+    let payload: unknown;
+    try {
+      payload = await c.req.json();
+    } catch {
+      return c.json(
+        makeApiError("validation_error", "Corps de requête JSON invalide"),
+        400,
+      );
+    }
+
+    const parsed = createOrderRequestSchema.safeParse(payload);
+    if (!parsed.success) {
+      return c.json(
+        makeApiError(
+          "validation_error",
+          "Requête de checkout invalide",
+          parsed.error.flatten(),
+        ),
+        400,
+      );
+    }
+
+    const checkoutDeps: CheckoutDeps = {
+      products: getProductLookup(),
+      orders: getOrderRepository(),
+      payments: getPaymentGateway(),
+    };
+
+    try {
+      const result = await createCheckout(checkoutDeps, parsed.data);
+      return c.json(result, 201);
+    } catch (err) {
+      if (err instanceof InvalidCheckoutError) {
+        return c.json(
+          makeApiError("validation_error", err.message, err.details),
+          400,
+        );
+      }
+      if (err instanceof ProductNotFoundError) {
+        return c.json(makeApiError("product_not_found", err.message), 404);
+      }
+      if (err instanceof ProductOutOfStockError) {
+        return c.json(makeApiError("product_out_of_stock", err.message), 409);
+      }
+      if (err instanceof PaymentGatewayError) {
+        logger.error("payment_gateway_error", { error: err.message });
+        return c.json(
+          makeApiError("payment_error", "Paiement indisponible"),
           502,
         );
       }

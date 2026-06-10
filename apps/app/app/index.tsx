@@ -2,6 +2,7 @@ import type {
   GiftConverseResponse,
   GiftMode,
   GiftSessionState,
+  Order,
   Product,
 } from "@oreli/shared";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +12,13 @@ import { ScrollView, Text, TextInput, View } from "react-native";
 import { Button } from "../components/Button";
 import { ConversationBubble } from "../components/ConversationBubble";
 import { ProductCard } from "../components/ProductCard";
+import { CheckoutApiError, createOrderRequest } from "../features/checkout/api";
+import {
+  buildOrderRequest,
+  type DeliveryForm,
+  formatAmount,
+  INITIAL_DELIVERY_FORM,
+} from "../features/checkout/form";
 import { converseRequest, GiftApiError } from "../features/gift/api";
 import {
   appendMessage,
@@ -20,16 +28,14 @@ import {
 } from "../features/gift/session";
 
 /**
- * Écran conversationnel du parcours cadeau (SPEC-001 · T5).
+ * Écran du parcours cadeau acheteur (SPEC-001 · T5 + T6).
  *
- * Trois temps : configuration (budget, occasion, date, mode, profil non
- * identifiant), dialogue avec Oreli, puis affichage de la short list ou de la
- * surprise et choix final. L'état de session vit côté client (la conversation
- * est sans état côté serveur dans cette tranche) et est renvoyé à chaque tour.
- *
- * Hors-scope T5 : le paiement (PaymentIntent Stripe) et la création de commande
- * relèvent de T6 ; ici, le « choix final » ne fait qu'enregistrer le produit
- * retenu et confirmer la sélection.
+ * Quatre temps : configuration (budget, occasion, date, mode, profil non
+ * identifiant), dialogue avec Oreli, choix final (T5), puis paiement de test
+ * Stripe et confirmation de commande (T6). L'état de session vit côté client (la
+ * conversation est sans état côté serveur dans cette tranche) et est renvoyé à
+ * chaque tour ; les coordonnées de livraison saisies à l'étape paiement peuvent
+ * être identifiantes mais ne transitent jamais par le modèle produit.
  */
 
 const INITIAL_FORM: GiftSetupForm = {
@@ -64,9 +70,43 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [selected, setSelected] = useState<Product | null>(null);
+  const [delivery, setDelivery] = useState<DeliveryForm>(INITIAL_DELIVERY_FORM);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const setField = (key: keyof GiftSetupForm, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const setDeliveryField = (key: keyof DeliveryForm, value: string) =>
+    setDelivery((current) => ({ ...current, [key]: value }));
+
+  // Règle le paiement de test et crée la commande. Le montant fait autorité
+  // côté serveur (lu depuis le produit) ; ici on n'envoie que le produit, le
+  // jeton de session et les coordonnées de livraison.
+  const payAndOrder = async () => {
+    if (selected === null) {
+      return;
+    }
+    const built = buildOrderRequest(delivery, guestToken, selected.id);
+    if (!built.ok) {
+      setErrors(built.errors);
+      return;
+    }
+    setPaying(true);
+    setErrors([]);
+    try {
+      const result = await createOrderRequest(built.request);
+      setOrder(result.order);
+    } catch (err) {
+      setErrors([
+        err instanceof CheckoutApiError
+          ? err.message
+          : "Le paiement n'a pas pu aboutir.",
+      ]);
+    } finally {
+      setPaying(false);
+    }
+  };
 
   // Un tour de dialogue : envoie l'état à l'API, puis archive la réponse
   // d'Oreli dans l'historique. En cas d'échec, l'état utilisateur est conservé.
@@ -133,7 +173,33 @@ export default function Home() {
         </Text>
       </View>
 
-      {session === null ? (
+      {order !== null ? (
+        <View className="w-full max-w-md gap-4">
+          <View className="items-center gap-2 rounded-2xl bg-gold/20 p-6">
+            <Text className="font-emotional text-3xl text-navy">Merci ✦</Text>
+            <Text className="text-center font-functional text-base text-navy/80">
+              Votre cadeau est commandé. Un paiement de test Stripe a abouti.
+            </Text>
+          </View>
+          <View className="gap-1 rounded-2xl border border-navy/15 bg-white p-4">
+            <Text className="font-functional text-sm text-navy/70">
+              Commande {order.id}
+            </Text>
+            <Text className="font-emotional text-xl text-navy">
+              {formatAmount(order.amountCents, order.currency)}
+            </Text>
+            <Text className="font-functional text-sm text-navy/70">
+              Statut : {order.status === "paid" ? "payé (test)" : order.status}
+            </Text>
+            <Text className="font-functional text-sm text-navy/70">
+              Livraison à {order.recipient.name}, {order.recipient.city}
+            </Text>
+            <Text className="font-functional text-xs text-navy/50">
+              PaymentIntent {order.stripePaymentIntentId}
+            </Text>
+          </View>
+        </View>
+      ) : session === null ? (
         <View className="w-full max-w-md gap-4">
           <View className="flex-row gap-3">
             <View className="flex-1 gap-1">
@@ -294,12 +360,96 @@ export default function Home() {
           ) : null}
 
           {selected !== null ? (
-            <View className="gap-1 rounded-2xl bg-gold/20 p-4">
+            <View className="gap-3 rounded-2xl bg-gold/20 p-4">
               <Text className="font-emotional text-lg text-navy">
                 Cadeau retenu : {selected.title}
               </Text>
               <Text className="font-functional text-sm text-navy/70">
-                Le paiement sécurisé arrive à l'étape suivante.
+                {formatAmount(selected.priceCents, selected.currency)} ·
+                livraison où vous le souhaitez.
+              </Text>
+
+              <View className="gap-1">
+                <FieldLabel>Nom du destinataire</FieldLabel>
+                <TextInput
+                  className={INPUT_CLASS}
+                  value={delivery.name}
+                  onChangeText={(value) => setDeliveryField("name", value)}
+                  placeholder="Camille Dupont"
+                  accessibilityLabel="Nom du destinataire"
+                />
+              </View>
+              <View className="gap-1">
+                <FieldLabel>Adresse</FieldLabel>
+                <TextInput
+                  className={INPUT_CLASS}
+                  value={delivery.line1}
+                  onChangeText={(value) => setDeliveryField("line1", value)}
+                  placeholder="Rue des Brasseurs 12"
+                  accessibilityLabel="Adresse de livraison"
+                />
+              </View>
+              <View className="gap-1">
+                <FieldLabel>Complément (optionnel)</FieldLabel>
+                <TextInput
+                  className={INPUT_CLASS}
+                  value={delivery.line2}
+                  onChangeText={(value) => setDeliveryField("line2", value)}
+                  placeholder="Boîte 3"
+                  accessibilityLabel="Complément d'adresse"
+                />
+              </View>
+              <View className="flex-row gap-3">
+                <View className="flex-1 gap-1">
+                  <FieldLabel>Code postal</FieldLabel>
+                  <TextInput
+                    className={INPUT_CLASS}
+                    value={delivery.postalCode}
+                    onChangeText={(value) =>
+                      setDeliveryField("postalCode", value)
+                    }
+                    placeholder="1000"
+                    accessibilityLabel="Code postal"
+                  />
+                </View>
+                <View className="flex-[2] gap-1">
+                  <FieldLabel>Ville</FieldLabel>
+                  <TextInput
+                    className={INPUT_CLASS}
+                    value={delivery.city}
+                    onChangeText={(value) => setDeliveryField("city", value)}
+                    placeholder="Bruxelles"
+                    accessibilityLabel="Ville"
+                  />
+                </View>
+              </View>
+              <View className="gap-1">
+                <FieldLabel>Date de livraison (AAAA-MM-JJ)</FieldLabel>
+                <TextInput
+                  className={INPUT_CLASS}
+                  value={delivery.deliveryDate}
+                  onChangeText={(value) =>
+                    setDeliveryField("deliveryDate", value)
+                  }
+                  placeholder="2026-12-24"
+                  accessibilityLabel="Date de livraison"
+                />
+              </View>
+
+              <Button
+                label={
+                  paying
+                    ? "Paiement en cours…"
+                    : `Payer ${formatAmount(selected.priceCents, selected.currency)} (test)`
+                }
+                variant="celebration"
+                disabled={paying}
+                onPress={() => {
+                  void payAndOrder();
+                }}
+              />
+              <Text className="font-functional text-xs text-navy/50">
+                Paiement Stripe en mode test : aucune carte réelle n'est débitée.
               </Text>
             </View>
           ) : null}

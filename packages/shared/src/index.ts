@@ -199,6 +199,91 @@ export const giftConverseResponseSchema = z.object({
 
 export type GiftConverseResponse = z.infer<typeof giftConverseResponseSchema>;
 
+/* -------------------------------------------------------------------------- */
+/* Checkout · Commande (SPEC-001 · T6)                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Statut d'une commande. `pending` : `PaymentIntent` créé mais paiement non
+ * confirmé ; `paid` : paiement abouti (mode test Stripe) ; `failed` : paiement
+ * refusé. Le statut est dérivé du statut du `PaymentIntent`, jamais fourni par
+ * le client.
+ */
+export const orderStatusSchema = z.enum(["pending", "paid", "failed"]);
+
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
+
+/**
+ * Coordonnées de livraison du destinataire. Contrairement au profil transmis au
+ * modèle (`recipientProfileSchema`), ces données *peuvent* être identifiantes
+ * (nom, adresse) : elles servent l'expédition et **ne sont jamais envoyées au
+ * modèle produit**. `.strict()` borne les champs acceptés. `country` est un code
+ * ISO 3166-1 alpha-2 (Belgique par défaut, catalogue bruxellois).
+ */
+export const shippingRecipientSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    line1: z.string().min(1).max(200),
+    line2: z.string().min(1).max(200).optional(),
+    postalCode: z.string().min(1).max(20),
+    city: z.string().min(1).max(120),
+    country: z
+      .string()
+      .length(2)
+      .regex(/^[A-Za-z]{2}$/, "Code pays ISO 3166-1 alpha-2 attendu")
+      .transform((value) => value.toUpperCase())
+      .default("BE"),
+  })
+  .strict();
+
+export type ShippingRecipient = z.infer<typeof shippingRecipientSchema>;
+
+/**
+ * Corps de `POST /api/v1/checkout`. Le client n'envoie jamais de montant : le
+ * serveur fait autorité sur le prix (lu depuis le produit), ce qui garantit le
+ * critère d'acceptation « la commande est créée avec le bon montant ».
+ * `giftSessionId` est le jeton de session invité (la `GiftSession` n'est pas
+ * persistée dans cette tranche : la conversation reste détenue côté client, T4).
+ */
+export const createOrderRequestSchema = z
+  .object({
+    giftSessionId: z.string().min(1),
+    productId: z.string().min(1),
+    recipient: shippingRecipientSchema,
+    deliveryDate: z.string().datetime(),
+  })
+  .strict();
+
+export type CreateOrderRequest = z.infer<typeof createOrderRequestSchema>;
+
+/** Représentation publique d'une commande (dates sérialisées en ISO 8601). */
+export const orderSchema = z.object({
+  id: z.string(),
+  giftSessionId: z.string(),
+  productId: z.string(),
+  amountCents: z.number().int().nonnegative(),
+  currency: z.string(),
+  stripePaymentIntentId: z.string(),
+  status: orderStatusSchema,
+  recipient: shippingRecipientSchema,
+  deliveryDate: z.string().datetime(),
+  createdAt: z.string().datetime(),
+});
+
+export type Order = z.infer<typeof orderSchema>;
+
+/**
+ * Réponse de `POST /api/v1/checkout` : la commande créée et le `client_secret`
+ * du `PaymentIntent` (utile à une confirmation côté client ; `null` lorsque le
+ * paiement de test aboutit déjà côté serveur).
+ */
+export const createOrderResponseSchema = z.object({
+  order: orderSchema,
+  clientSecret: z.string().nullable(),
+});
+
+export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
+
 export {
   buildOreliCatalogueBlock,
   ORELI_PROMPT_VERSION,
