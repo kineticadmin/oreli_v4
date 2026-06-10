@@ -50,6 +50,12 @@ pnpm --filter @oreli/app web     # ouvre la cible web d'Expo
 
 Copier `.env.example` vers `.env`. Aucun secret n'est codé en dur (SYSTEM.md).
 
+## Déploiement web
+
+Mise en ligne de la tranche V4.0 (application web Vercel + API Railway + Neon),
+matrice des variables d'environnement et événements clés PostHog : voir
+[`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md).
+
 ## Méthode
 
 Développement piloté par les specs (SDAD). Une Pull Request par tâche ;
