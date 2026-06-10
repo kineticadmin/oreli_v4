@@ -2,9 +2,9 @@ import type {
   GiftConverseResponse,
   GiftMode,
   GiftSessionState,
-  Order,
   Product,
 } from "@oreli/shared";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import { ScrollView, Text, TextInput, View } from "react-native";
@@ -12,6 +12,13 @@ import { ScrollView, Text, TextInput, View } from "react-native";
 import { Button } from "../components/Button";
 import { ConversationBubble } from "../components/ConversationBubble";
 import { ProductCard } from "../components/ProductCard";
+import { createAnalytics, resolveAnalyticsConfig } from "../features/analytics/client";
+import {
+  giftSelectedEvent,
+  giftSessionStartedEvent,
+  oreliSuggestedEvent,
+  orderCompletedEvent,
+} from "../features/analytics/events";
 import { CheckoutApiError, createOrderRequest } from "../features/checkout/api";
 import {
   buildOrderRequest,
@@ -26,16 +33,18 @@ import {
   createGuestToken,
   type GiftSetupForm,
 } from "../features/gift/session";
+import { encodeThankYouParams } from "../features/thankyou/summary";
 
 /**
- * Écran du parcours cadeau acheteur (SPEC-001 · T5 + T6).
+ * Écran du parcours cadeau acheteur (SPEC-001 · T5 + T6 + T7).
  *
  * Quatre temps : configuration (budget, occasion, date, mode, profil non
  * identifiant), dialogue avec Oreli, choix final (T5), puis paiement de test
- * Stripe et confirmation de commande (T6). L'état de session vit côté client (la
- * conversation est sans état côté serveur dans cette tranche) et est renvoyé à
- * chaque tour ; les coordonnées de livraison saisies à l'étape paiement peuvent
- * être identifiantes mais ne transitent jamais par le modèle produit.
+ * Stripe (T6). Une commande aboutie redirige vers la page de remerciement
+ * `/merci` (T7). L'état de session vit côté client (la conversation est sans état
+ * côté serveur dans cette tranche) et est renvoyé à chaque tour ; les coordonnées
+ * de livraison saisies à l'étape paiement peuvent être identifiantes mais ne
+ * transitent jamais par le modèle produit ni par la mesure (T7).
  */
 
 const INITIAL_FORM: GiftSetupForm = {
@@ -71,8 +80,11 @@ export default function Home() {
   const [errors, setErrors] = useState<string[]>([]);
   const [selected, setSelected] = useState<Product | null>(null);
   const [delivery, setDelivery] = useState<DeliveryForm>(INITIAL_DELIVERY_FORM);
-  const [order, setOrder] = useState<Order | null>(null);
   const [paying, setPaying] = useState(false);
+
+  // Client de mesure PostHog (T7), résolu une fois depuis l'environnement public.
+  // No-op silencieux tant que `EXPO_PUBLIC_POSTHOG_KEY` n'est pas configurée.
+  const analytics = useMemo(() => createAnalytics(resolveAnalyticsConfig()), []);
 
   const setField = (key: keyof GiftSetupForm, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -96,7 +108,11 @@ export default function Home() {
     setErrors([]);
     try {
       const result = await createOrderRequest(built.request);
-      setOrder(result.order);
+      void analytics.capture(orderCompletedEvent(guestToken, result.order));
+      router.push({
+        pathname: "/merci",
+        params: encodeThankYouParams(result.order),
+      });
     } catch (err) {
       setErrors([
         err instanceof CheckoutApiError
@@ -117,6 +133,9 @@ export default function Home() {
       const result = await converseRequest(nextState);
       setSession(appendMessage(nextState, "oreli", result.reply));
       setResponse(result);
+      if (result.readyToSuggest) {
+        void analytics.capture(oreliSuggestedEvent(guestToken, result));
+      }
     } catch (err) {
       setSession(nextState);
       setResponse(null);
@@ -137,6 +156,7 @@ export default function Home() {
       return;
     }
     setSelected(null);
+    void analytics.capture(giftSessionStartedEvent(built.state));
     await runTurn(built.state);
   };
 
@@ -173,33 +193,7 @@ export default function Home() {
         </Text>
       </View>
 
-      {order !== null ? (
-        <View className="w-full max-w-md gap-4">
-          <View className="items-center gap-2 rounded-2xl bg-gold/20 p-6">
-            <Text className="font-emotional text-3xl text-navy">Merci ✦</Text>
-            <Text className="text-center font-functional text-base text-navy/80">
-              Votre cadeau est commandé. Un paiement de test Stripe a abouti.
-            </Text>
-          </View>
-          <View className="gap-1 rounded-2xl border border-navy/15 bg-white p-4">
-            <Text className="font-functional text-sm text-navy/70">
-              Commande {order.id}
-            </Text>
-            <Text className="font-emotional text-xl text-navy">
-              {formatAmount(order.amountCents, order.currency)}
-            </Text>
-            <Text className="font-functional text-sm text-navy/70">
-              Statut : {order.status === "paid" ? "payé (test)" : order.status}
-            </Text>
-            <Text className="font-functional text-sm text-navy/70">
-              Livraison à {order.recipient.name}, {order.recipient.city}
-            </Text>
-            <Text className="font-functional text-xs text-navy/50">
-              PaymentIntent {order.stripePaymentIntentId}
-            </Text>
-          </View>
-        </View>
-      ) : session === null ? (
+      {session === null ? (
         <View className="w-full max-w-md gap-4">
           <View className="flex-row gap-3">
             <View className="flex-1 gap-1">
@@ -352,7 +346,12 @@ export default function Home() {
                     variant={
                       selected?.id === product.id ? "celebration" : "primary"
                     }
-                    onPress={() => setSelected(product)}
+                    onPress={() => {
+                      setSelected(product);
+                      void analytics.capture(
+                        giftSelectedEvent(guestToken, product),
+                      );
+                    }}
                   />
                 </View>
               ))}
